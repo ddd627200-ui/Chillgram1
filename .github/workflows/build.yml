@@ -20,7 +20,7 @@ jobs:
       - name: Init submodules
         run: |
           git submodule sync --recursive
-          git submodule update --init --recursive --force
+          git submodule update --init --recursive --force --depth=1
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -59,18 +59,22 @@ jobs:
             --stacktrace
 
       - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: TMessagesProj_App/build/outputs/apk/afat/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          APK=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -1)
+          echo "Found APK: $APK"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > chillgram.keystore
+          jarsigner -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore chillgram.keystore \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            "$APK" "${{ secrets.KEY_ALIAS }}"
+          cp "$APK" ChillGram-v1.0.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ChillGram-APK
-          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          path: ChillGram-v1.0.apk
           retention-days: 30
