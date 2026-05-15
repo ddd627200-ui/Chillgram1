@@ -63,15 +63,15 @@ jobs:
           APK=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -1)
           echo "Found APK: $APK"
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > chillgram.keystore
-          jarsigner -verbose \
-            -sigalg SHA256withRSA \
-            -digestalg SHA-256 \
-            -keystore chillgram.keystore \
-            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.KEY_PASSWORD }}" \
-            "$APK" "${{ secrets.KEY_ALIAS }}"
-          cp "$APK" ChillGram-v1.0.apk
-
+          $ANDROID_HOME/build-tools/29.0.3/zipalign -v 4 "$APK" aligned.apk
+          $ANDROID_HOME/build-tools/29.0.3/apksigner sign \
+            --ks chillgram.keystore \
+            --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
+            --key-pass pass:"${{ secrets.KEY_PASSWORD }}" \
+            --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
+            --out ChillGram-v1.0.apk \
+            aligned.apk
+            
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
