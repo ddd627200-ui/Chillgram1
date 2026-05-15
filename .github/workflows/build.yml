@@ -1,3 +1,4 @@
+
 name: Build ChillGram APK
 
 on:
@@ -58,12 +59,18 @@ jobs:
             -Dorg.gradle.parallel=true \
             --stacktrace
 
-      - name: Sign APK
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > chillgram.keystore
+
+      - name: Zipalign APK
         run: |
           APK=$(find TMessagesProj_App/build/outputs/apk -name "*.apk" | head -1)
-          echo "Found APK: $APK"
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > chillgram.keystore
+          echo "APK path: $APK"
           $ANDROID_HOME/build-tools/29.0.3/zipalign -v 4 "$APK" aligned.apk
+
+      - name: Sign APK
+        run: |
           $ANDROID_HOME/build-tools/29.0.3/apksigner sign \
             --ks chillgram.keystore \
             --ks-pass pass:"${{ secrets.KEYSTORE_PASSWORD }}" \
@@ -71,7 +78,12 @@ jobs:
             --ks-key-alias "${{ secrets.KEY_ALIAS }}" \
             --out ChillGram-v1.0.apk \
             aligned.apk
-            
+
+      - name: Verify APK
+        run: |
+          $ANDROID_HOME/build-tools/29.0.3/apksigner verify ChillGram-v1.0.apk
+          echo "APK verified successfully!"
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
